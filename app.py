@@ -1,6 +1,7 @@
 from flask import Flask, request, jsonify
 import xgboost as xgb
 import pandas as pd
+import os
 
 app = Flask(__name__)
 
@@ -41,4 +42,7 @@ def predict_credibility():
         return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
-    app.run(port=5000, debug=True)
+    # Render assigns a dynamic port, and host='0.0.0.0' opens it to the internet
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=port)
+
