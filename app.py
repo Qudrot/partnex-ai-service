@@ -4,36 +4,41 @@ import pandas as pd
 
 app = Flask(__name__)
 
-# 1. Load the model you downloaded from Colab
+print("Loading XGBoost Model V2...")
 model = xgb.XGBClassifier()
+# Make sure you are using the V2 model trained on the 6 new columns!
 model.load_model('partnex_credibility_model.json')
 
-# 2. Create the REST API Endpoint
-@app.route('/predict', methods=['POST'])
+# FIX 1: Match the backend's hardcoded "/score" route
+@app.route('/score', methods=['POST'])
 def predict_credibility():
     try:
-        # Get the SME data sent from your Node.js backend
+        # Get the SME data sent from Node.js
         data = request.json
+        print(f"Incoming Payload: {data}")
         
-        # Convert the JSON data into a format the model understands
+        # Convert to DataFrame
         features = pd.DataFrame([data])
         
         # Predict the 0-100 Credibility Score
         probabilities = model.predict_proba(features)
-        score = float(round(probabilities[0][2] * 100, 1)) # Probability of "Low Risk" class
+        score = float(round(probabilities[0][2] * 100, 1))
         
-        # Predict the Risk Level (0=High, 1=Medium, 2=Low)
+        # Predict the Risk Level (returns 0, 1, or 2)
         risk_prediction = int(model.predict(features)[0])
-        risk_labels = ['High', 'Medium', 'Low']
         
-        return jsonify({
-            'success': True,
+        # FIX 2: Send the integer instead of text so Node.js Number() doesn't crash
+        response_data = {
             'credibility_score': score,
-            'risk_level': risk_labels[risk_prediction]
-        })
+            'credible_class': risk_prediction 
+        }
+        
+        print(f"Sending Response: {response_data}")
+        return jsonify(response_data), 200
 
     except Exception as e:
-        return jsonify({'success': False, 'error': str(e)})
+        print(f"AI CRASHED: {str(e)}")
+        return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
     app.run(port=5000, debug=True)
