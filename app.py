@@ -6,7 +6,8 @@ import os
 app = Flask(__name__)
 
 print("Loading XGBoost Model V2...")
-model = xgb.XGBClassifier()
+# Forces XGBoost to only use 1 CPU thread to prevent Docker deadlocks
+model = xgb.XGBClassifier(n_jobs=1)
 # Make sure you are using the V2 model trained on the 6 new columns!
 model.load_model('partnex_credibility_model.json')
 
@@ -45,4 +46,5 @@ if __name__ == '__main__':
     # Render assigns a dynamic port, and host='0.0.0.0' opens it to the internet
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port)
+
 
