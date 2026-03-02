@@ -18,6 +18,10 @@ def predict_credibility():
         # Get the SME data sent from Node.js
         data = request.json
         print(f"Incoming Payload: {data}")
+
+        # Convert backend decimals (0.9) to model scale (9.0)
+        data['reporting_consistency'] = data['reporting_consistency'] * 10
+        data['impact_score'] = data['impact_score'] * 100
         
         # Convert to DataFrame
         features = pd.DataFrame([data])
@@ -46,5 +50,6 @@ if __name__ == '__main__':
     # Render assigns a dynamic port, and host='0.0.0.0' opens it to the internet
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port)
+
 
 
