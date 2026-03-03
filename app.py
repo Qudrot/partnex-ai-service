@@ -28,7 +28,12 @@ def predict_credibility():
         
         # Predict the 0-100 Credibility Score
         probabilities = model.predict_proba(features)
-        score = float(round(probabilities[0][2] * 100, 1))
+        
+        # Calculate score based on the probability of NOT being High Risk (Class 0)
+        # This gives a beautiful, natural 0 to 100 scale.
+        score = float(round((1.0 - probabilities[0][0]) * 100, 1))
+        
+        risk_prediction = int(model.predict(features)[0])
         
         # Predict the Risk Level (returns 0, 1, or 2)
         risk_prediction = int(model.predict(features)[0])
@@ -50,6 +55,7 @@ if __name__ == '__main__':
     # Render assigns a dynamic port, and host='0.0.0.0' opens it to the internet
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port)
+
 
 
 
