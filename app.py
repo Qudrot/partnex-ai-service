@@ -1,61 +1,145 @@
 from flask import Flask, request, jsonify
-import xgboost as xgb
-import pandas as pd
-import os
+import joblib 
+import numpy as np
 
 app = Flask(__name__)
 
-print("Loading XGBoost Model V2...")
-# Forces XGBoost to only use 1 CPU thread to prevent Docker deadlocks
-model = xgb.XGBClassifier(n_jobs=1)
-# Make sure you are using the V2 model trained on the 6 new columns!
-model.load_model('partnex_credibility_model.json')
+# ==========================================
+# 1. LOAD THE MACHINE LEARNING MODEL
+# ==========================================
+# Make sure 'credibility_model.pkl' matches the actual name of your saved XGBoost model
+try:
+    model = joblib.load('credibility_model.pkl')
+except Exception as e:
+    print(f"Warning: Could not load model. Ensure 'credibility_model.pkl' exists. Error: {e}")
 
-# FIX 1: Match the backend's hardcoded "/score" route
-@app.route('/score', methods=['POST'])
-def predict_credibility():
+# ==========================================
+# 2. SMART METRICS DEDUCTION ENGINE
+# ==========================================
+def calculate_smart_metrics(data_payload):
+    """
+    Deduces dynamic Impact and Consistency scores purely from available financial data.
+    This acts as a failsafe if the Node.js backend forgets to send the full profile.
+    """
+    # Grab whatever financial numbers Node.js sent us (handling both camelCase and snake_case)
+    revenue = float(data_payload.get('revenue', data_payload.get('annual_revenue_amount_1', 0)))
+    expenses = float(data_payload.get('expenses', data_payload.get('monthly_expenses', 0)))
+    debt = float(data_payload.get('debt', data_payload.get('existing_liabilities', 0)))
+    
+    # ---------------------------------------------------------
+    # CALCULATE IMPACT SCORE (Socioeconomic Value)
+    # ---------------------------------------------------------
+    impact_score = 0.4 # Base score for a registered micro-business
+    
+    # Did Node.js secretly send employees? If yes, use it!
+    employees = data_payload.get('number_of_employees')
+    if employees is not None and str(employees).isdigit():
+        emp_count = int(employees)
+        if emp_count >= 20: impact_score += 0.5
+        elif emp_count >= 5: impact_score += 0.3
+    else:
+        # FALLBACK: Use Revenue Size as a proxy for job creation / socioeconomic impact
+        if revenue >= 15000000: # 15M+ Naira 
+            impact_score += 0.5
+        elif revenue >= 5000000: # 5M+ Naira
+            impact_score += 0.3
+            
+    # ---------------------------------------------------------
+    # CALCULATE REPORTING CONSISTENCY (Data Trustworthiness)
+    # ---------------------------------------------------------
+    consistency = 0.5 # Base score for basic manual entry
+    
+    if revenue > 0:
+        # Sanity Check 1: Do expenses make sense? (Healthy businesses track expenses properly)
+        if expenses < revenue: 
+            consistency += 0.25 
+        
+        # Sanity Check 2: Are liabilities clearly tracked and manageable?
+        if debt <= (revenue * 0.5): 
+            consistency += 0.25 
+
+    # Ensure scores never go above 1.0 (Maximum AI limit)
+    final_impact = min(round(impact_score, 2), 1.0)
+    final_consistency = min(round(consistency, 2), 1.0)
+    
+    return final_impact, final_consistency
+
+
+# ==========================================
+# 3. THE AI PREDICTION ENDPOINT
+# ==========================================
+@app.route('/predict', methods=['POST'])
+def predict_score():
     try:
-        # Get the SME data sent from Node.js
+        # 1. Get the JSON payload sent by Node.js
         data = request.json
-        print(f"Incoming Payload: {data}")
-
-        # Convert backend decimals (0.9) to model scale (9.0)
-        data['reporting_consistency'] = data['reporting_consistency'] * 10
-        data['impact_score'] = data['impact_score'] * 100
+        if not data:
+            return jsonify({"error": "No JSON data provided"}), 400
         
-        # Convert to DataFrame
-        features = pd.DataFrame([data])
+        # 2. Generate the dynamic metrics (Overwriting the 0.9/0.7 hardcoded Node.js values)
+        dynamic_impact, dynamic_consistency = calculate_smart_metrics(data)
         
-        # Predict the 0-100 Credibility Score
+        # 3. Extract the standard financial numbers safely
+        revenue = float(data.get('revenue', data.get('annual_revenue_amount_1', 0)))
+        expenses = float(data.get('expenses', data.get('monthly_expenses', 0)))
+        debt = float(data.get('debt', data.get('existing_liabilities', 0)))
+        revenue_growth = float(data.get('revenue_growth', 0))
+        
+        # 4. Build the exact array your XGBoost model expects
+        # MUST MATCH TRAINING COLUMNS: [Revenue, Expenses, Debt, Growth, Consistency, Impact]
+        features = np.array([[revenue, expenses, debt, revenue_growth, dynamic_consistency, dynamic_impact]])
+        
+        # 5. Run the Prediction
         probabilities = model.predict_proba(features)
+        risk_prediction = int(model.predict(features)[0])
         
-        # Calculate score based on the probability of NOT being High Risk (Class 0)
-        # This gives a beautiful, natural 0 to 100 scale.
+        # Calculate final 0-100 score based on the probability of NOT being high risk (Class 0)
         score = float(round((1.0 - probabilities[0][0]) * 100, 1))
         
-        risk_prediction = int(model.predict(features)[0])
-        
-        # Predict the Risk Level (returns 0, 1, or 2)
-        risk_prediction = int(model.predict(features)[0])
-        
-        # FIX 2: Send the integer instead of text so Node.js Number() doesn't crash
-        response_data = {
-            'credibility_score': score,
-            'credible_class': risk_prediction 
-        }
-        
-        print(f"Sending Response: {response_data}")
-        return jsonify(response_data), 200
+        # Map the class to a readable Risk Level string
+        risk_level = "LOW"
+        if risk_prediction == 1: 
+            risk_level = "MEDIUM"
+        elif risk_prediction == 0: 
+            risk_level = "HIGH"
+
+        # 6. Return the exact JSON structure the Flutter app is waiting for
+        return jsonify({
+            "score": score,
+            "risk_level": risk_level,
+            "explanation": {
+                "source": "ai-service",
+                "credible_class": risk_prediction,
+                "model_inputs": {
+                    "revenue": revenue,
+                    "expenses": expenses,
+                    "debt": debt,
+                    "revenue_growth": revenue_growth,
+                    "reporting_consistency": dynamic_consistency, 
+                    "impact_score": dynamic_impact                
+                },
+                "note": f"Score dynamically generated. Impact factor: {dynamic_impact}, Consistency: {dynamic_consistency}."
+            },
+            "model_version": "ai-v2.1"
+        }), 200
 
     except Exception as e:
-        print(f"AI CRASHED: {str(e)}")
-        return jsonify({'error': str(e)}), 500
+        print(f"Prediction Error: {str(e)}")
+        return jsonify({"error": "Internal AI Server Error", "details": str(e)}), 500
+
+
+# ==========================================
+# 4. HEALTH CHECK / ROOT ENDPOINT
+# ==========================================
+@app.route('/', methods=['GET'])
+def health_check():
+    return jsonify({
+        "status": "online",
+        "service": "Partnex AI Scoring Engine",
+        "version": "2.1"
+    }), 200
+
 
 if __name__ == '__main__':
-    # Render assigns a dynamic port, and host='0.0.0.0' opens it to the internet
-    port = int(os.environ.get('PORT', 5000))
-    app.run(host='0.0.0.0', port=port)
-
-
-
-
+    # Runs on port 5000 by default. Adjust if your hosting provider requires a different port.
+    app.run(host='0.0.0.0', port=5000, debug=True)
