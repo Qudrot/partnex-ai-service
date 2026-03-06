@@ -143,3 +143,7 @@ def health_check():
 if __name__ == '__main__':
     # Runs on port 5000 by default. Adjust if your hosting provider requires a different port.
     app.run(host='0.0.0.0', port=5000, debug=True)
+    
+@app.route('/ping', methods=['GET'])
+def ping():
+    return "Server is awake!", 200
