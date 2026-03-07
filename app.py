@@ -79,7 +79,10 @@ def calculate_smart_metrics(data_payload):
 # ==========================================
 # 3. THE AI PREDICTION ENDPOINT
 # ==========================================
-@app.route('/predict', methods=['POST'])
+@app.route('/score', methods=['POST'], strict_slashes=False)
+@app.route('//score', methods=['POST'], strict_slashes=False)
+@app.route('/predict', methods=['POST'], strict_slashes=False)
+@app.route('/api/score', methods=['POST'], strict_slashes=False)
 def predict_score():
     try:
         # 1. Get the JSON payload sent by Node.js
@@ -158,5 +161,6 @@ if __name__ == '__main__':
 @app.route('/ping', methods=['GET'])
 def ping():
     return "Server is awake!", 200
+
 
 
