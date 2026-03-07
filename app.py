@@ -7,12 +7,23 @@ app = Flask(__name__)
 # ==========================================
 # 1. LOAD THE MACHINE LEARNING MODEL
 # ==========================================
-# Make sure 'credibility_model.pkl' matches the actual name of your saved XGBoost model
-try:
-    model = joblib.load('credibility_model.pkl')
-except Exception as e:
-    print(f"Warning: Could not load model. Ensure 'credibility_model.pkl' exists. Error: {e}")
+import os
+import xgboost as xgb
 
+try:
+    # Use absolute paths so the cloud server never gets lost
+    BASE_DIR = os.path.dirname(os.path.abspath(__file__)) 
+    MODEL_PATH = os.path.join(BASE_DIR, 'credibility_model.json')
+
+    # Load the JSON model natively using XGBoost
+    model = xgb.XGBClassifier() # Use XGBRegressor() if your model predicts a continuous number
+    model.load_model(MODEL_PATH)
+    
+    print("XGBoost JSON Model loaded successfully!")
+except Exception as e:
+    print(f"Warning: Could not load model. Ensure 'credibility_model.json' exists. Error: {e}")
+
+    
 # ==========================================
 # 2. SMART METRICS DEDUCTION ENGINE
 # ==========================================
@@ -147,3 +158,4 @@ if __name__ == '__main__':
 @app.route('/ping', methods=['GET'])
 def ping():
     return "Server is awake!", 200
+
