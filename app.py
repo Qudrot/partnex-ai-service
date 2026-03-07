@@ -76,6 +76,14 @@ def predict_score():
         data = request.json
         if not data:
             return jsonify({"error": "No JSON data provided"}), 400
+            
+        # ----------------------------------------------------
+        #    LOGGING: INCOMING DATA
+        # ----------------------------------------------------
+        print("\n" + "="*40)
+        print("INCOMING PAYLOAD FROM NODE.JS:")
+        print(data)
+        print("="*40 + "\n")
         
         dynamic_impact, dynamic_consistency = calculate_smart_metrics(data)
         
@@ -98,10 +106,10 @@ def predict_score():
         elif risk_prediction == 0: 
             risk_level = "HIGH"
 
-        # EXACT JSON STRUCTURE EXPECTED BY NODE.JS
-        return jsonify({
-            "credibility_score": score,       # FIXED: Matches Node.js expectation
-            "credible_class": risk_prediction, # FIXED: Added for Node.js expectation
+        # Construct the final response dictionary
+        response_data = {
+            "credibility_score": score,
+            "credible_class": risk_prediction,
             "risk_level": risk_level,
             "explanation": {
                 "source": "ai-service",
@@ -116,10 +124,21 @@ def predict_score():
                 "note": f"Score dynamically generated. Impact factor: {dynamic_impact}, Consistency: {dynamic_consistency}."
             },
             "model_version": "ai-v2.1"
-        }), 200
+        }
+
+        # ----------------------------------------------------
+        # LOGGING: OUTGOING DATA
+        # ----------------------------------------------------
+        print("\n" + "="*40)
+        print("OUTGOING PAYLOAD TO NODE.JS:")
+        print(response_data)
+        print("="*40 + "\n")
+
+        # Return the exact JSON structure expected by Node.js
+        return jsonify(response_data), 200
 
     except Exception as e:
-        print(f"Prediction Error: {str(e)}")
+        print(f"\n❌ Prediction Error: {str(e)}\n")
         return jsonify({"error": "Internal AI Server Error", "details": str(e)}), 500
 
 
@@ -136,3 +155,4 @@ def ping():
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
+
