@@ -13,7 +13,7 @@ import xgboost as xgb
 try:
     # Use absolute paths so the cloud server never gets lost
     BASE_DIR = os.path.dirname(os.path.abspath(__file__)) 
-    MODEL_PATH = os.path.join(BASE_DIR, 'credibility_model.json')
+    MODEL_PATH = os.path.join(BASE_DIR, 'partnex_credibility_model.json')
 
     # Load the JSON model natively using XGBoost
     model = xgb.XGBClassifier() # Use XGBRegressor() if your model predicts a continuous number
@@ -21,7 +21,7 @@ try:
     
     print("XGBoost JSON Model loaded successfully!")
 except Exception as e:
-    print(f"Warning: Could not load model. Ensure 'credibility_model.json' exists. Error: {e}")
+    print(f"Warning: Could not load model. Ensure 'partnex_credibility_model.json' exists. Error: {e}")
 
     
 # ==========================================
@@ -158,4 +158,5 @@ if __name__ == '__main__':
 @app.route('/ping', methods=['GET'])
 def ping():
     return "Server is awake!", 200
+
 
