@@ -95,10 +95,16 @@ def predict_score():
         # Build features array: [Revenue, Expenses, Debt, Growth, Consistency, Impact]
         features = np.array([[revenue, expenses, debt, revenue_growth, dynamic_consistency, dynamic_impact]])
         
+       # 5. Run the Prediction
         probabilities = model.predict_proba(features)
         risk_prediction = int(model.predict(features)[0])
         
-        score = float(round((1.0 - probabilities[0][0]) * 100, 1))
+        # Calculate the score out of 100 and force it to be a WHOLE NUMBER
+        raw_score = (1.0 - probabilities[0][0]) * 100
+        score = int(round(raw_score)) 
+        
+        # Make sure it never accidentally drops below 0 or goes over 100
+        score = max(0, min(100, score))
         
         risk_level = "LOW"
         if risk_prediction == 1: 
@@ -155,4 +161,5 @@ def ping():
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
+
 
