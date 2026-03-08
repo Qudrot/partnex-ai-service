@@ -64,10 +64,10 @@ def predict_score():
             return jsonify({"error": "No JSON data provided"}), 400
             
         # ----------------------------------------------------
-        # 🪵 LOGGING: INCOMING DATA
+        #  LOGGING: INCOMING DATA
         # ----------------------------------------------------
         print("\n" + "="*40)
-        print("📥 INCOMING PAYLOAD FROM NODE.JS:")
+        print(" INCOMING PAYLOAD FROM NODE.JS:")
         print(data)
         print("="*40 + "\n")
         
@@ -80,7 +80,7 @@ def predict_score():
         revenue_growth = float(data.get('revenue_growth', 0) or 0)
         
         # ==========================================
-        # 🚨 THE SCALE FIX FOR THE AI'S BRAIN
+        #  THE SCALE FIX FOR THE AI'S BRAIN
         # ==========================================
         # Scale them UP only for the XGBoost model (0.9 -> 90, 1.0 -> 10)
         ai_impact = int(min(round(raw_impact * 100), 100))
@@ -107,7 +107,7 @@ def predict_score():
             risk_level = "HIGH"
 
         # ==========================================
-        # 🚨 THE DECIMAL FIX FOR THE PAYLOAD
+        #  THE DECIMAL FIX FOR THE PAYLOAD
         # ==========================================
         response_data = {
             "credibility_score": score,
@@ -129,17 +129,17 @@ def predict_score():
         }
 
         # ----------------------------------------------------
-        # 🪵 LOGGING: OUTGOING DATA
+        #  LOGGING: OUTGOING DATA
         # ----------------------------------------------------
         print("\n" + "="*40)
-        print("📤 OUTGOING PAYLOAD TO NODE.JS:")
+        print("OUTGOING PAYLOAD TO NODE.JS:")
         print(response_data)
         print("="*40 + "\n")
 
         return jsonify(response_data), 200
 
     except Exception as e:
-        print(f"\n❌ Prediction Error: {str(e)}\n")
+        print(f"\n Prediction Error: {str(e)}\n")
         return jsonify({"error": "Internal AI Server Error", "details": str(e)}), 500
 
 
