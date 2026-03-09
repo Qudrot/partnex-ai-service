@@ -27,23 +27,46 @@ def calculate_smart_metrics(data_payload):
     expenses = float(data_payload.get('expenses', data_payload.get('monthly_expenses', 0)) or 0)
     debt = float(data_payload.get('debt', data_payload.get('existing_liabilities', 0)) or 0)
     
-    # Calculate base decimals (0 to 1 scale)
-    impact_score = 0.4 
+    # ----------------------------------------------------
+    # 🌍 NEW MULTI-FACTOR IMPACT SCORE
+    # ----------------------------------------------------
+    impact_score = 0.2 # Baseline score for all SMEs
+    
+    # Factor 1: Job Creation (Up to +0.3)
     employees = data_payload.get('number_of_employees')
     if employees is not None and str(employees).isdigit():
         emp_count = int(employees)
-        if emp_count >= 20: impact_score += 0.5
-        elif emp_count >= 5: impact_score += 0.3
-    else:
-        if revenue >= 15000000: impact_score += 0.5
-        elif revenue >= 5000000: impact_score += 0.3
-            
+        if emp_count >= 50: impact_score += 0.3
+        elif emp_count >= 20: impact_score += 0.2
+        elif emp_count >= 5: impact_score += 0.1
+
+    # Factor 2: Economic Footprint / Revenue (Up to +0.3)
+    if revenue >= 50000000: impact_score += 0.3     # 50M+ Naira
+    elif revenue >= 15000000: impact_score += 0.2   # 15M+ Naira
+    elif revenue >= 5000000: impact_score += 0.1    # 5M+ Naira
+
+    # Factor 3: Industry Sector / Purpose (Up to +0.2)
+    # Grab the sector from the payload and make it lowercase to check easily
+    sector = str(data_payload.get('industry_sector', '')).lower()
+    
+    high_impact_sectors = ['health', 'education', 'agriculture', 'farming', 'clean energy']
+    medium_impact_sectors = ['manufacturing', 'technology', 'logistics', 'fintech']
+    
+    if any(keyword in sector for keyword in high_impact_sectors):
+        impact_score += 0.2
+    elif any(keyword in sector for keyword in medium_impact_sectors):
+        impact_score += 0.1
+    # Standard sectors (like Retail, E-commerce, Entertainment) get +0.0
+    
+    # ----------------------------------------------------
+    # 📊 REPORTING CONSISTENCY SCORE
+    # ----------------------------------------------------
     consistency = 0.5 
     if revenue > 0:
         if expenses < revenue: consistency += 0.25 
         if debt <= (revenue * 0.5): consistency += 0.25 
 
-    # Keep them bounded strictly between 0 and 1 for the payload
+    # Strictly cap both at a maximum of 1.0
     raw_impact = min(round(impact_score, 2), 1.0)
     raw_consistency = min(round(consistency, 2), 1.0)
     
@@ -164,4 +187,5 @@ def ping():
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
+
 
