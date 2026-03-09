@@ -90,11 +90,19 @@ def predict_score():
         features = np.array([[revenue, expenses, debt, revenue_growth, ai_consistency, ai_impact]])
         
         # Predict
-        probabilities = model.predict_proba(features)
+        probabilities = model.predict_proba(features)[0] 
         risk_prediction = int(model.predict(features)[0])
         
-        # Calculate raw score, convert to pure integer, and bound 0-100
-        raw_score = (1.0 - probabilities[0][0]) * 100
+        # ==========================================
+        # 🚨 THE FAIR MARKET SCORE WEIGHTING
+        # ==========================================
+        # probabilities[0] = Chance of High Risk
+        # probabilities[1] = Chance of Medium Risk
+        # probabilities[2] = Chance of Low Risk
+        
+        # High Risk anchors at 20, Medium at 75, Low at 100
+        raw_score = (probabilities[0] * 20) + (probabilities[1] * 75) + (probabilities[2] * 100)
+        
         score = int(round(raw_score)) 
         score = max(0, min(100, score))
         
@@ -156,3 +164,4 @@ def ping():
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
+
