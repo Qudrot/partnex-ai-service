@@ -129,12 +129,15 @@ def predict_score():
         score = int(round(raw_score)) 
         score = max(0, min(100, score))
         
-        # Map to the 3 classes from Colab training
-        if risk_prediction == 2: 
+      # ==========================================
+        # SYNCED RISK LEVEL CATEGORIZATION
+        # ==========================================
+        # Match the Node.js backend thresholds exactly
+        if score >= 70:
             risk_level = "LOW"
-        elif risk_prediction == 1: 
+        elif score >= 40:
             risk_level = "MEDIUM"
-        else: 
+        else:
             risk_level = "HIGH"
 
         # ==========================================
@@ -156,7 +159,7 @@ def predict_score():
                 },
                 "note": f"Score successfully generated. Impact: {raw_impact}, Consistency: {raw_consistency}."
             },
-            "model_version": "ai-v2.3"
+            "model_version": "ai-v2.2"
         }
 
         # ----------------------------------------------------
@@ -187,5 +190,6 @@ def ping():
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
+
 
 
