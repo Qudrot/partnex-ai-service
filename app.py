@@ -116,20 +116,26 @@ def predict_score():
         probabilities = model.predict_proba(features)[0] 
         risk_prediction = int(model.predict(features)[0])
         
-        # ==========================================
-        # 🚨 THE FAIR MARKET SCORE WEIGHTING
+       # ==========================================
+        # 🚨 THE FLUID MARKET SCORE WEIGHTING
         # ==========================================
         # probabilities[0] = Chance of High Risk
         # probabilities[1] = Chance of Medium Risk
         # probabilities[2] = Chance of Low Risk
         
-        # High Risk anchors at 20, Medium at 75, Low at 100
-        raw_score = (probabilities[0] * 20) + (probabilities[1] * 75) + (probabilities[2] * 100)
+        # Base score anchors: High at 20, Medium at 70, Low at 90
+        base_score = (probabilities[0] * 20) + (probabilities[1] * 70) + (probabilities[2] * 90)
+        
+        # Add dynamic bonuses so the score constantly fluctuates based on real metrics
+        # Up to +5 points for perfect consistency, up to +5 points for perfect impact
+        bonus_points = (raw_consistency * 5) + (raw_impact * 5)
+        
+        raw_score = base_score + bonus_points
         
         score = int(round(raw_score)) 
         score = max(0, min(100, score))
-        
-      # ==========================================
+
+        # ==========================================
         # SYNCED RISK LEVEL CATEGORIZATION
         # ==========================================
         # Match the Node.js backend thresholds exactly
@@ -190,6 +196,7 @@ def ping():
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
+
 
 
 
