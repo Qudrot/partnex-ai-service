@@ -18,7 +18,6 @@ try:
 except Exception as e:
     print(f"Warning: Could not load model. Error: {e}")
 
-
 # ==========================================
 # 2. SMART METRICS DEDUCTION ENGINE
 # ==========================================
@@ -41,12 +40,11 @@ def calculate_smart_metrics(data_payload):
         elif emp_count >= 5: impact_score += 0.1
 
     # Factor 2: Economic Footprint / Revenue (Up to +0.3)
-    if revenue >= 50000000: impact_score += 0.3     # 50M+ Naira
-    elif revenue >= 15000000: impact_score += 0.2   # 15M+ Naira
-    elif revenue >= 5000000: impact_score += 0.1    # 5M+ Naira
+    if revenue >= 50000000: impact_score += 0.3      # 50M+ Naira
+    elif revenue >= 15000000: impact_score += 0.2    # 15M+ Naira
+    elif revenue >= 5000000: impact_score += 0.1     # 5M+ Naira
 
     # Factor 3: Industry Sector / Purpose (Up to +0.2)
-    # Grab the sector from the payload and make it lowercase to check easily
     sector = str(data_payload.get('industry_sector', '')).lower()
     
     high_impact_sectors = ['health', 'education', 'agriculture', 'farming', 'clean energy']
@@ -56,7 +54,6 @@ def calculate_smart_metrics(data_payload):
         impact_score += 0.2
     elif any(keyword in sector for keyword in medium_impact_sectors):
         impact_score += 0.1
-    # Standard sectors (like Retail, E-commerce, Entertainment) get +0.0
     
     # ----------------------------------------------------
     # 📊 REPORTING CONSISTENCY SCORE
@@ -72,7 +69,6 @@ def calculate_smart_metrics(data_payload):
     
     return raw_impact, raw_consistency
 
-
 # ==========================================
 # 3. THE AI PREDICTION ENDPOINT
 # ==========================================
@@ -86,15 +82,11 @@ def predict_score():
         if not data:
             return jsonify({"error": "No JSON data provided"}), 400
             
-        # ----------------------------------------------------
-        #  LOGGING: INCOMING DATA
-        # ----------------------------------------------------
         print("\n" + "="*40)
         print(" INCOMING PAYLOAD FROM NODE.JS:")
         print(data)
         print("="*40 + "\n")
         
-        # 1. Grab the 0 to 1 decimals
         raw_impact, raw_consistency = calculate_smart_metrics(data)
         
         revenue = float(data.get('revenue', data.get('annual_revenue_amount_1', 0)) or 0)
@@ -102,48 +94,26 @@ def predict_score():
         debt = float(data.get('debt', data.get('existing_liabilities', 0)) or 0)
         revenue_growth = float(data.get('revenue_growth', 0) or 0)
         
-        # ==========================================
-        #  THE SCALE FIX FOR THE AI'S BRAIN
-        # ==========================================
-        # Scale them UP only for the XGBoost model (0.9 -> 90, 1.0 -> 10)
+        # Scale UP for the XGBoost model
         ai_impact = int(min(round(raw_impact * 100), 100))
         ai_consistency = int(min(round(raw_consistency * 10), 10))
 
-        # Build features array using the SCALED integers
         features = np.array([[revenue, expenses, debt, revenue_growth, ai_consistency, ai_impact]])
         
-        # Predict
         probabilities = model.predict_proba(features)[0] 
         risk_prediction = int(model.predict(features)[0])
         
-      ==========================================
-
-        # 🚨 THE FAIR MARKET SCORE WEIGHTING
-
         # ==========================================
-
-        # probabilities[0] = Chance of High Risk
-
-        # probabilities[1] = Chance of Medium Risk
-
-        # probabilities[2] = Chance of Low Risk
-
-        
-
-        # High Risk anchors at 20, Medium at 75, Low at 100
-
+        # 🚨 THE FAIR MARKET SCORE WEIGHTING (STRICT)
+        # ==========================================
         raw_score = (probabilities[0] * 20) + (probabilities[1] * 75) + (probabilities[2] * 100)
-
         
-
         score = int(round(raw_score)) 
-
         score = max(0, min(100, score))
-
+        
         # ==========================================
         # SYNCED RISK LEVEL CATEGORIZATION
         # ==========================================
-        # Match the Node.js backend thresholds exactly
         if score >= 70:
             risk_level = "LOW"
         elif score >= 40:
@@ -151,9 +121,6 @@ def predict_score():
         else:
             risk_level = "HIGH"
 
-        # ==========================================
-        #  THE DECIMAL FIX FOR THE PAYLOAD
-        # ==========================================
         response_data = {
             "credibility_score": score,
             "credible_class": risk_prediction,
@@ -165,17 +132,14 @@ def predict_score():
                     "expenses": expenses,
                     "debt": debt,
                     "revenue_growth": revenue_growth,
-                    "reporting_consistency": raw_consistency, # Using original 0-1 decimal
-                    "impact_score": raw_impact                # Using original 0-1 decimal
+                    "reporting_consistency": raw_consistency, 
+                    "impact_score": raw_impact                
                 },
                 "note": f"Score successfully generated. Impact: {raw_impact}, Consistency: {raw_consistency}."
             },
             "model_version": "ai-v2.2"
         }
 
-        # ----------------------------------------------------
-        #  LOGGING: OUTGOING DATA
-        # ----------------------------------------------------
         print("\n" + "="*40)
         print("OUTGOING PAYLOAD TO NODE.JS:")
         print(response_data)
@@ -187,13 +151,12 @@ def predict_score():
         print(f"\n Prediction Error: {str(e)}\n")
         return jsonify({"error": "Internal AI Server Error", "details": str(e)}), 500
 
-
 # ==========================================
 # 4. HEALTH CHECK / ROOT ENDPOINT
 # ==========================================
 @app.route('/', methods=['GET'])
 def health_check():
-    return jsonify({"status": "online", "version": "2.3"}), 200
+    return jsonify({"status": "online", "version": "2.4-strict"}), 200
 
 @app.route('/ping', methods=['GET'])
 def ping():
@@ -201,8 +164,3 @@ def ping():
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
-
-
-
-
-
