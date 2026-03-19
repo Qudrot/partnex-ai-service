@@ -27,7 +27,7 @@ def calculate_smart_metrics(data_payload):
     debt = float(data_payload.get('debt', data_payload.get('existing_liabilities', 0)) or 0)
     
     # ----------------------------------------------------
-    # 🌍 NEW MULTI-FACTOR IMPACT SCORE
+    # NEW MULTI-FACTOR IMPACT SCORE
     # ----------------------------------------------------
     impact_score = 0.2 # Baseline score for all SMEs
     
@@ -56,7 +56,7 @@ def calculate_smart_metrics(data_payload):
         impact_score += 0.1
     
     # ----------------------------------------------------
-    # 📊 REPORTING CONSISTENCY SCORE
+    # REPORTING CONSISTENCY SCORE
     # ----------------------------------------------------
     consistency = 0.5 
     if revenue > 0:
@@ -81,30 +81,25 @@ def predict_score():
         data = request.json
         if not data:
             return jsonify({"error": "No JSON data provided"}), 400
-            
-        print("\n" + "="*40)
-        print(" INCOMING PAYLOAD FROM NODE.JS:")
-        print(data)
-        print("="*40 + "\n")
         
-        raw_impact, raw_consistency = calculate_smart_metrics(data)
+        # EXTRACT DIRECTLY FROM NODE.JS PAYLOAD
+        raw_impact = float(data.get('impact_score', 0.2))
+        raw_consistency = float(data.get('consistency_score', 0.5))
         
         revenue = float(data.get('revenue', data.get('annual_revenue_amount_1', 0)) or 0)
         expenses = float(data.get('expenses', data.get('monthly_expenses', 0)) or 0)
         debt = float(data.get('debt', data.get('existing_liabilities', 0)) or 0)
         revenue_growth = float(data.get('revenue_growth', 0) or 0)
         
-        # Scale UP for the XGBoost model
+        # Scale UP for the XGBoost model exactly as before
         ai_impact = int(min(round(raw_impact * 100), 100))
         ai_consistency = int(min(round(raw_consistency * 10), 10))
 
         features = np.array([[revenue, expenses, debt, revenue_growth, ai_consistency, ai_impact]])
         
-        probabilities = model.predict_proba(features)[0] 
-        risk_prediction = int(model.predict(features)[0])
         
         # ==========================================
-        # 🚨 THE FAIR MARKET SCORE WEIGHTING (STRICT)
+        # THE FAIR MARKET SCORE WEIGHTING (STRICT)
         # ==========================================
         raw_score = (probabilities[0] * 20) + (probabilities[1] * 75) + (probabilities[2] * 100)
         
@@ -152,7 +147,7 @@ def predict_score():
         return jsonify({"error": "Internal AI Server Error", "details": str(e)}), 500
 
 # ==========================================
-# 4. HEALTH CHECK / ROOT ENDPOINT
+# HEALTH CHECK / ROOT ENDPOINT
 # ==========================================
 @app.route('/', methods=['GET'])
 def health_check():
