@@ -96,7 +96,19 @@ def predict_score():
         ai_consistency = int(min(round(raw_consistency * 10), 10))
 
         features = np.array([[revenue, expenses, debt, revenue_growth, ai_consistency, ai_impact]])
-        probabilities = model.predict_proba(features)[0]
+        # 1. Your features array is set up
+        features = np.array([[revenue, expenses, debt, revenue_growth, ai_consistency, ai_impact]])
+        
+        # THE FIX: Support both XGBClassifier and raw Booster models!
+        try:
+            probabilities = model.predict_proba(features)[0]
+        except AttributeError:
+            import xgboost as xgb
+            dmatrix = xgb.DMatrix(features)
+            probabilities = model.predict(dmatrix)[0]
+        
+        # 3. Your math formula executes flawlessly
+        raw_score = (probabilities[0] * 20) + (probabilities[1] * 75) + (probabilities[2] * 100)
         
         
         # ==========================================
