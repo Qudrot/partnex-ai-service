@@ -96,6 +96,7 @@ def predict_score():
         ai_consistency = int(min(round(raw_consistency * 10), 10))
 
         features = np.array([[revenue, expenses, debt, revenue_growth, ai_consistency, ai_impact]])
+        probabilities = model.predict_proba(features)[0]
         
         
         # ==========================================
