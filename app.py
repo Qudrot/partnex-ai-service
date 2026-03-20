@@ -132,9 +132,9 @@ def predict_score():
          # ==========================================
         # SYNCED RISK LEVEL CATEGORIZATION
         # ==========================================
-        if score >= 70:
+        if score >= 75:
             risk_level = "LOW"
-        elif score >= 40:
+        elif score >= 50:
             risk_level = "MEDIUM"
         else:
             risk_level = "HIGH"
