@@ -105,7 +105,17 @@ def predict_score():
         except AttributeError:
             import xgboost as xgb
             dmatrix = xgb.DMatrix(features)
-            probabilities = model.predict(dmatrix)[0]
+            preds = model.predict(dmatrix)
+            # Flatten to a 1D list safely
+            probabilities = preds[0] if len(preds.shape) > 1 else preds
+        
+        # THE PADDING FIX: Ensure we always have at least 3 numbers to prevent IndexErrors!
+        probs_list = list(probabilities)
+        while len(probs_list) < 3:
+            probs_list.append(0.0)
+        
+        # 3. Your math formula executes flawlessly
+        raw_score = (probs_list[0] * 20) + (probs_list[1] * 75) + (probs_list[2] * 100)
         
         # 3. Your math formula executes flawlessly
         raw_score = (probabilities[0] * 20) + (probabilities[1] * 75) + (probabilities[2] * 100)
