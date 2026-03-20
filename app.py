@@ -129,7 +129,7 @@ def predict_score():
         score = int(round(raw_score)) 
         score = max(0, min(100, score))
         
-        # ==========================================
+         # ==========================================
         # SYNCED RISK LEVEL CATEGORIZATION
         # ==========================================
         if score >= 70:
@@ -139,9 +139,9 @@ def predict_score():
         else:
             risk_level = "HIGH"
 
+        # Removed the undefined 'risk_prediction' variable
         response_data = {
             "credibility_score": score,
-            "credible_class": risk_prediction,
             "risk_level": risk_level,
             "explanation": {
                 "source": "ai-service",
